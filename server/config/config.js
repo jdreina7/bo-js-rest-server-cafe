@@ -19,3 +19,5 @@ process.env.CADUCIDAD_TOKEN = 60 * 60 * 24 * 30;
  ***********************/
 process.env.SEED = process.env.SEED || 'september-charglie@-12345';
 
+
+process.env.MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/cafe';

@@ -26,7 +26,7 @@ app.get('/categories', function (req, res) {
         });
       }
 
-      Category.count({ status: true }, (error, conteo) => {
+      Category.countDocuments({ status: true }, (error, conteo) => {
 
         if (error) {
           return res.status(400).json({
