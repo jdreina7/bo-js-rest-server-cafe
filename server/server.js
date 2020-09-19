@@ -3,6 +3,7 @@ require('./config/config');
 // Dependencias
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const bodyParser = require('body-parser');
 
@@ -18,6 +19,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
+// Habilitar rutas públicas
+app.use( express.static( path.resolve(__dirname, '../public') ) ); //  /server/public
 
 // Rutas = Endpoints
 app.use( require('./routes/index') );
