@@ -1,26 +1,27 @@
 const express = require('express');
 const _ = require('underscore');
 
-const Category = require('../models/category');
+const Product = require('../models/product');
 const { verificaToken, verificaAdminRole } = require('../middlewares/autenticacion');
 
 const app = express();
 
 // Obtengo todos los users
-app.get('/categories', verificaToken, function (req, res) {
+app.get('/products', verificaToken, function (req, res) {
 
   let desde = req.query.desde || 0;
   desde = Number(desde);
 
-  let lim = req.query.lim || 10;
+  let lim = req.query.lim || 5;
   lim = Number(lim);
 
-  Category.find({ status: true })
+  Product.find({ status: true })
     .sort({ name: 'desc'})
+    .populate('category', 'name')
     .populate('user', 'name email')
     .skip(desde)
     .limit(lim)
-    .exec((err, categoriesDB) => {
+    .exec((err, productsDB) => {
 
       if (err) {
         return res.status(400).json({
@@ -29,7 +30,7 @@ app.get('/categories', verificaToken, function (req, res) {
         });
       }
 
-      Category.countDocuments({ status: true }, (error, conteo) => {
+      Product.countDocuments({ status: true }, (error, conteo) => {
 
         if (error) {
           return res.status(400).json({
@@ -40,7 +41,7 @@ app.get('/categories', verificaToken, function (req, res) {
 
         res.json({
           ok: true,
-          categorias: categoriesDB,
+          productos: productsDB,
           total: conteo
         });
 
@@ -51,14 +52,15 @@ app.get('/categories', verificaToken, function (req, res) {
 
 });
 
-// Obtengo un usuario
-app.get('/categories/:id', verificaToken, function (req, res) {
+// Obtengo un producto
+app.get('/products/:id', verificaToken, function (req, res) {
 
   let id = req.params.id;
 
-  Category.findById({ '_id': id })
-      .populate('user')
-      .exec(( err, categoryDB) => {
+  Product.findById({'_id': id})
+    .populate('category', 'name')
+    .populate('user', 'name email')
+    .exec(( err, productDB) => {
 
     if (err) {
       return res.status(400).json({
@@ -67,36 +69,40 @@ app.get('/categories/:id', verificaToken, function (req, res) {
       });
     }
 
-    if (!categoryDB) {
+    if (!productDB) {
       return res.status(400).json({
         ok: false,
         error: {
-          message: 'La Categoría que intenta consultar no existe en la BD'
+          message: 'El Producto que intenta consultar no existe en la BD'
         }
       });
     }
     
     res.json({
       ok: true,
-      categoria: categoryDB
+      producto: productDB
     });
   });
 
 
 });
 
-// Almaceno/posteo uun usuario
-app.post('/categories', [verificaToken, verificaAdminRole], function (req, res) {
+// Almaceno/posteo un producto
+app.post('/products', [verificaToken, verificaAdminRole], function (req, res) {
 
   let body = req.body;
 
-  let categoria = new Category({
+  let producto = new Product({
     name: body.name,
+    unit_price: body.unit_price,
+    description: body.description,
+    available: body.available,
+    category: body.category,
     user: body.user,
     status: body.status
   });
 
-  categoria.save((err, categoryDB) => {
+  producto.save((err, productDB) => {
 
     if (err) {
       return res.status(400).json({
@@ -107,19 +113,19 @@ app.post('/categories', [verificaToken, verificaAdminRole], function (req, res) 
 
     res.json({
       ok: true,
-      categoria: categoryDB
+      producto: productDB
     });
 
   });
 
 });
 
-// Actualizo un usuario
-app.put('/categories/:id', [verificaToken, verificaAdminRole], function (req, res) {
+// Actualizo un producto
+app.put('/products/:id', [verificaToken, verificaAdminRole], function (req, res) {
   let id = req.params.id;
-  let body = _.pick(req.body, ['name', 'user', 'status']);
+  let body = _.pick(req.body, ['name', 'unit_price', 'available', 'description', 'category', 'user', 'status']);
 
-  Category.findByIdAndUpdate(id, body, { new: true, runValidators: true, context: 'query' }, (err, categoryDB) => {
+  Product.findByIdAndUpdate(id, body, { new: true, runValidators: true, context: 'query' }, (err, productDB) => {
 
     if (err) {
       return res.status(400).json({
@@ -130,22 +136,22 @@ app.put('/categories/:id', [verificaToken, verificaAdminRole], function (req, re
 
     res.json({
       ok: true,
-      categoria_actualizada: categoryDB
+      producto_actualizado: productDB
     });
 
   });
 
 });
 
-// Elimino un usuario (actualizar el estado)
-app.delete('/categories/:id', [verificaToken, verificaAdminRole], function (req, res) {
+// Elimino un producto (actualizar el estado)
+app.delete('/products/:id', [verificaToken, verificaAdminRole], function (req, res) {
   let id = req.params.id;
 
   let changeState = {
     status: false
   };
 
-  Category.findByIdAndUpdate(id, changeState, { new: true }, (err, categoryDeleted) => {
+  Product.findByIdAndUpdate(id, changeState, { new: true }, (err, productDeleted) => {
 
     if (err) {
       return res.status(400).json({
@@ -154,18 +160,18 @@ app.delete('/categories/:id', [verificaToken, verificaAdminRole], function (req,
       });
     }
 
-    if (categoryDeleted === null) {
+    if (productDeleted === null) {
       return res.status(400).json({
         ok: false,
         error: {
-          message: 'La categoría que intenta eliminar no existe en la BD'
+          message: 'El Producto que intenta eliminar no existe en la BD'
         }
       });
     }
 
     res.json({
       ok: true,
-      categoria_eliminada: categoryDeleted
+      producto_eliminado: productDeleted
     });
 
   });
